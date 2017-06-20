@@ -15,11 +15,11 @@ install:
   - export HOMEBREW_DEVELOPER=1
   - brew tap homebrew/science
   - mkdir -p $(brew --repo)/Library/Taps/dpo
-  - ln -s $PWD $(brew --repo)/Library/Taps/dpo/homebrew-julia
+  - ln -s "$TRAVIS_BUILD_DIR" $(brew --repo)/Library/Taps/dpo/homebrew-julia
+  - export TRAVIS_BUILD_DIR="$(brew --repo)/Library/Taps/dpo/homebrew-julia"
   - chmod 0644 $(brew --repo)/Library/Taps/dpo/homebrew-julia/*.rb
   - brew tap --repair
   - brew update
 
 script:
-  - brew tap homebrew/science
   - brew test-bot --tap=dpo/julia
