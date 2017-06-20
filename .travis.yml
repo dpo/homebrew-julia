@@ -8,6 +8,7 @@ matrix:
 
 install:
   - unset DYLD_LIBRARY_PATH
+  - export HOMEBREW_DEVELOPER=1
   - brew tap homebrew/science
   - mkdir -p $(brew --repo)/Library/Taps/dpo
   - ln -s $PWD $(brew --repo)/Library/Taps/dpo/homebrew-julia
@@ -16,4 +17,5 @@ install:
   - brew update
 
 script:
-  - brew test-bot
+  - brew tap homebrew/science
+  - brew test-bot --tap=dpo/julia
