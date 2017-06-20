@@ -1,0 +1,19 @@
+language: ruby
+
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode8.1
+      rvm: system
+
+install:
+  - unset DYLD_LIBRARY_PATH
+  - brew tap homebrew/science
+  - mkdir -p $(brew --repo)/Library/Taps/dpo
+  - ln -s $PWD $(brew --repo)/Library/Taps/dpo/homebrew-julia
+  - chmod 0644 $(brew --repo)/Library/Taps/dpo/homebrew-julia/*.rb
+  - brew tap --repair
+  - brew update
+
+script:
+  - brew test-bot --tap=dpo/julia
