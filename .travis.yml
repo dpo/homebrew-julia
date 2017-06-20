@@ -16,4 +16,4 @@ install:
   - brew update
 
 script:
-  - brew test-bot --tap=dpo/julia
+  - brew test-bot
