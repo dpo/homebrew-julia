@@ -99,10 +99,10 @@ class Julia < Formula
     # Do the same for openblas, pcre, mpfr, and gmp
     ln_s "#{Formula["openblas"].opt_lib}/libopenblas.dylib", "usr/lib/"
     ln_s "#{Formula["arpack"].opt_lib}/libarpack.dylib", "usr/lib/"
-    ln_s "#{Formula["pcre2"].lib}/libpcre2-8.dylib", "usr/lib/"
-    ln_s "#{Formula["mpfr"].lib}/libmpfr.dylib", "usr/lib/"
-    ln_s "#{Formula["gmp"].lib}/libgmp.dylib", "usr/lib/"
-    ln_s "#{Formula["libgit2"].lib}/libgit2.dylib", "usr/lib/"
+    ln_s "#{Formula["pcre2"].opt_lib}/libpcre2-8.dylib", "usr/lib/"
+    ln_s "#{Formula["mpfr"].opt_lib}/libmpfr.dylib", "usr/lib/"
+    ln_s "#{Formula["gmp"].opt_lib}/libgmp.dylib", "usr/lib/"
+    ln_s "#{Formula["libgit2"].opt_lib}/libgit2.dylib", "usr/lib/"
 
     system "make", "release", "debug", *build_opts
     system "make", "install", *build_opts
@@ -127,7 +127,8 @@ class Julia < Formula
     rpaths.each do |rpath|
       Dir["#{bin}/julia*"].each do |file|
         chmod 0755, file
-        quiet_system "install_name_tool", "-add_rpath", rpath, file
+        # quiet_system "install_name_tool", "-add_rpath", rpath, file
+        MachO::Tools.add_rpath(rpath, file)
         chmod 0555, file
       end
     end
