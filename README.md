@@ -5,19 +5,19 @@ A small tap for the [Homebrew project](http://mxcl.github.com/homebrew/) to inst
 
 ```bash
 $ brew update
-$ brew tap staticfloat/julia
+$ brew tap dpo/julia
 $ brew install julia
 ```
 
 Common Issues
 =============
 
-If you are building Julia from source and you see errors about `libgfortran.dylib`, you most likely need to reinstall the latest `gcc`, `openblas-julia`, `suite-sparse-julia` and `arpack-julia`:
+If you are building Julia from source and you see errors about `libgfortran.dylib`, you most likely need to reinstall the latest `gcc`, `openblas`, `suite-sparse` and `arpack`:
 
 ```
 $ brew update
-$ brew rm gcc openblas-julia suite-sparse-julia arpack-julia
-$ brew install gcc openblas-julia suite-sparse-julia arpack-julia 
+$ brew rm julia $(brew deps julia)
+$ brew install julia
 ```
 
 See [this thread](https://github.com/Homebrew/homebrew/issues/33948) for technical details as to why `gfortran` dependencies require this treatment.
@@ -41,14 +41,14 @@ Using OpenBLAS HEAD or specifying CPU targets
 If you wish to test the newest development version of [OpenBLAS](https://github.com/xianyi/OpenBLAS) with Julia, you can do so by manually unlinking OpenBLAS, and installing the HEAD version of the formula:
 
 ```bash
-$ brew unlink openblas-julia
-$ brew install openblas-julia --HEAD
+$ brew unlink openblas
+$ brew install openblas --HEAD
 ```
 
 This will install the latest `develop` branch of OpenBLAS.  Julia will happily link against this new version, but unfortunately SuiteSparse will not, so we must recompile SuiteSparse and therefore Julia:
 
 ```bash
-$ brew rm suite-sparse-julia julia
+$ brew rm suite-sparse julia
 $ brew install julia
 ```
 
@@ -61,7 +61,7 @@ $ brew install openblas-julia --target=SANDYBRIDGE
 Rebuilding the system image
 ===========================
 
-When building Julia, the file `base/userimg.jl`, if it exists, will be included in the cached of compiled code. If there are large libraries that you use often, it can be useful to [`require` those in this file](https://github.com/JuliaLang/Gtk.jl/blob/master/doc/precompilation.md), for example:
+When building Julia, the file `base/userimg.jl`, if it exists, will be included in the cache of compiled code. If there are large libraries that you use often, it can be useful to [`require` those in this file](https://github.com/JuliaLang/Gtk.jl/blob/master/doc/precompilation.md), for example:
 
 ```julia
 require("Gtk")
@@ -69,7 +69,7 @@ require("DataFrames")
 require("JuMP")
 ```
 
-By default, the `userimg.jl` file does not exist, but you can create it yourself and then rebuild the Julia system image.  Place a `userimg.jl` file into `/usr/local/Cellar/julia/<julia version>/share/julia/base` (Assuming Homebrew has been installed to `/usr/local`), then run `build_sysimg.jl` (located in the folder immediatebly above the `base` directory) to rebuild the system image.  The script has many options, to see them all run `./build_sysimg.jl --help`, but if you just want to replace the current system image with the new one you're about to build (and most people do just want that) simply run:
+By default, the `userimg.jl` file does not exist, but you can create it yourself and then rebuild the Julia system image.  Place a `userimg.jl` file into `$(brew --prefix julia)/<julia version>/share/julia/base`, then run `build_sysimg.jl` (located in the folder immediatebly above the `base` directory) to rebuild the system image.  The script has many options, to see them all run `./build_sysimg.jl --help`, but if you just want to replace the current system image with the new one you're about to build (and most people do just want that) simply run:
 
 ```bash
 $ ./build_sysimg.jl --force
@@ -94,7 +94,7 @@ $ brew test -v --HEAD julia
 If compilation of Julia fails, or the tests fail, you may have to remove these dependencies and recompile:
 
 ```bash
-$ brew rm julia arpack-julia suite-sparse-julia openblas-julia
+$ brew rm julia $(brew deps julia)
 $ brew install -v --HEAD julia && brew test -v --HEAD julia
 ```
 
