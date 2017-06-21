@@ -71,9 +71,9 @@ class Julia < Formula
     build_opts << "VERBOSE=1" if ARGV.verbose?
 
     build_opts << "LIBBLAS=-framework Accelerate"
-    build_opts << "LIBBLASNAME=blas"
+    build_opts << "LIBBLASNAME=libblas"
     build_opts << "LIBLAPACK=-framework Accelerate"
-    build_opts << "LIBLAPACKNAME=lapack"
+    build_opts << "LIBLAPACKNAME=liblapack"
 
     # Kudos to @ijt for these lines of code
     %w[FFTW GLPK GMP LLVM PCRE BLAS LAPACK SUITESPARSE ARPACK MPFR LIBGIT2].each do |dep|
