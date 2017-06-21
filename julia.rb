@@ -62,13 +62,13 @@ class Julia < Formula
     # Tell julia about our llvm-config, since it"s been named nonstandardly
     build_opts << "LLVM_CONFIG=llvm-config-3.7"
     build_opts << "LLVM_VER=3.7.1"
-    ENV["CPPFLAGS"] += " -DUSE_ORCJIT "
+    ENV.append "CPPFLAGS", " -DUSE_ORCJIT "
 
     # Tell julia where the default software base is, mostly for suitesparse
     build_opts << "LOCALBASE=#{prefix}"
 
     # Make sure we have space to muck around with RPATHS
-    ENV["LDFLAGS"] += " -headerpad_max_install_names"
+    ENV.append "LDFLAGS", " -headerpad_max_install_names"
 
     # Make sure Julia uses clang if the environment supports it
     build_opts << "USECLANG=1" if ENV.compiler == :clang
