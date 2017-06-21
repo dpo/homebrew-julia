@@ -10,7 +10,7 @@ class GitNoDepthDownloadStrategy < GitDownloadStrategy
 end
 
 class Julia < Formula
-  desc "julia: A fresh approach to technical computing"
+  desc "A fresh approach to technical computing"
   homepage "https://julialang.org"
 
   stable do
@@ -38,14 +38,10 @@ class Julia < Formula
   depends_on "libgit2"
   depends_on "mbedtls"
 
-  depends_on "homebrew/science/arpack" => "with-openblas"
-  depends_on "homebrew/science/openblas"
-  depends_on "homebrew/science/suite-sparse" => "with-openblas"
+  depends_on "homebrew/science/arpack"
+  depends_on "homebrew/science/suite-sparse"
 
   depends_on :fortran
-
-  # Need this as Julia's build process is quite messy with respect to env variables
-  # env :std
 
   def install
     ENV["PLATFORM"] = "darwin"
@@ -74,10 +70,10 @@ class Julia < Formula
     build_opts << "USECLANG=1" if ENV.compiler == :clang
     build_opts << "VERBOSE=1" if ARGV.verbose?
 
-    build_opts << "LIBBLAS=-lopenblas"
-    build_opts << "LIBBLASNAME=libopenblas"
-    build_opts << "LIBLAPACK=-lopenblas"
-    build_opts << "LIBLAPACKNAME=libopenblas"
+    build_opts << "LIBBLAS=-framework Accelerate"
+    build_opts << "LIBBLASNAME=blas"
+    build_opts << "LIBLAPACK=-framework Accelerate"
+    build_opts << "LIBLAPACKNAME=lapack"
 
     # Kudos to @ijt for these lines of code
     %w[FFTW GLPK GMP LLVM PCRE BLAS LAPACK SUITESPARSE ARPACK MPFR LIBGIT2].each do |dep|
@@ -89,15 +85,11 @@ class Julia < Formula
     # If we"re building a bottle, cut back on fancy CPU instructions
     build_opts << "MARCH=core2" if build.bottle?
 
-    # Sneak in the fftw libraries, as julia doesn"t know how to load dylibs from any place other than
+    # Sneak in libraries, as julia doesn"t know how to load dylibs from any place other than
     # julia"s usr/lib directory and system default paths yet; the build process fixes that after the
     # install step, but the bootstrapping process requires the use of the fftw libraries before then
     mkdir_p "usr/lib"
-    # ["", "f", "_threads", "f_threads"].each do |ext|
-    #   ln_s "#{Formula["fftw"].lib}/libfftw3#{ext}.dylib", "usr/lib/"
-    # end
-    # Do the same for openblas, pcre, mpfr, and gmp
-    ln_s "#{Formula["openblas"].opt_lib}/libopenblas.dylib", "usr/lib/"
+    # ln_s "#{Formula["openblas"].opt_lib}/libopenblas.dylib", "usr/lib/"
     ln_s "#{Formula["arpack"].opt_lib}/libarpack.dylib", "usr/lib/"
     ln_s "#{Formula["pcre2"].opt_lib}/libpcre2-8.dylib", "usr/lib/"
     ln_s "#{Formula["mpfr"].opt_lib}/libmpfr.dylib", "usr/lib/"
@@ -113,7 +105,7 @@ class Julia < Formula
     rpaths = []
 
     # Add in each key-only formula to the rpaths list
-    ["arpack", "suite-sparse", "openblas"].each do |formula|
+    ["arpack", "suite-sparse"].each do |formula|
       rpaths << Formula[formula].opt_lib.to_s
     end
 
