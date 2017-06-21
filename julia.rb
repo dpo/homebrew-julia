@@ -10,7 +10,8 @@ class GitNoDepthDownloadStrategy < GitDownloadStrategy
 end
 
 class Julia < Formula
-  homepage "http://julialang.org"
+  desc "julia: A fresh approach to technical computing"
+  homepage "https://julialang.org"
 
   stable do
     url "https://github.com/JuliaLang/julia.git",
@@ -22,34 +23,29 @@ class Julia < Formula
       :using => GitNoDepthDownloadStrategy, :shallow => false
   end
 
-  # Remember to clear "revision" above when prepping for new bottles, if it exists
-  bottle do
-    root_url "https://juliabottles.s3.amazonaws.com"
-    sha256 "8cae718dcd22ad8db08e138ea334f94afcfb565584c5ddb6337bee8d5c7a0562" => :yosemite
-    sha256 "27e299747972fa2e93eca2d82314339fd3db75cbf76c9fd31bf1e472102a3f63" => :sierra
-    sha256 "a58c5edf56c1136b326a5f06bdf77217e93f012c2d9dbabafe2311bf0e2a8e3c" => :el_capitan
-  end
+  # Options that can be passed to the build process
+  deprecated_option "system-libm" => "with-system-libm"
+  option "with-system-libm", "Use system's libm instead of openlibm"
+
+  depends_on "cmake" => :build
 
   depends_on "dpo/julia/llvm37-julia"
+
   depends_on "pcre2"
   depends_on "gmp"
   depends_on "fftw"
-  depends_on :fortran
   depends_on "mpfr"
   depends_on "libgit2"
   depends_on "mbedtls"
-  depends_on "cmake" => :build
 
-  # We have our custom formulae of arpack, openblas and suite-sparse
-  depends_on "arpack"
-  depends_on "openblas"
-  depends_on "suite-sparse"
+  depends_on "homebrew/science/arpack" => "with-openblas"
+  depends_on "homebrew/science/openblas"
+  depends_on "homebrew/science/suite-sparse" => "with-openblas"
 
-  # Need this as Julia"s build process is quite messy with respect to env variables
-  env :std
+  depends_on :fortran
 
-  # Options that can be passed to the build process
-  option "system-libm", "Use system's libm instead of openlibm"
+  # Need this as Julia's build process is quite messy with respect to env variables
+  # env :std
 
   def install
     ENV["PLATFORM"] = "darwin"
@@ -66,13 +62,13 @@ class Julia < Formula
     # Tell julia about our llvm-config, since it"s been named nonstandardly
     build_opts << "LLVM_CONFIG=llvm-config-3.7"
     build_opts << "LLVM_VER=3.7.1"
-    ENV["CPPFLAGS"] += " -DUSE_ORCJIT "
+    ENV.append "CPPFLAGS", " -DUSE_ORCJIT "
 
     # Tell julia where the default software base is, mostly for suitesparse
     build_opts << "LOCALBASE=#{prefix}"
 
     # Make sure we have space to muck around with RPATHS
-    ENV["LDFLAGS"] += " -headerpad_max_install_names"
+    ENV.append "LDFLAGS", " -headerpad_max_install_names"
 
     # Make sure Julia uses clang if the environment supports it
     build_opts << "USECLANG=1" if ENV.compiler == :clang
@@ -88,7 +84,7 @@ class Julia < Formula
       build_opts << "USE_SYSTEM_#{dep}=1"
     end
 
-    build_opts << "USE_SYSTEM_LIBM=1" if build.include? "system-libm"
+    build_opts << "USE_SYSTEM_LIBM=1" if build.with? "system-libm"
 
     # If we"re building a bottle, cut back on fancy CPU instructions
     build_opts << "MARCH=core2" if build.bottle?
@@ -103,10 +99,10 @@ class Julia < Formula
     # Do the same for openblas, pcre, mpfr, and gmp
     ln_s "#{Formula["openblas"].opt_lib}/libopenblas.dylib", "usr/lib/"
     ln_s "#{Formula["arpack"].opt_lib}/libarpack.dylib", "usr/lib/"
-    ln_s "#{Formula["pcre2"].lib}/libpcre2-8.dylib", "usr/lib/"
-    ln_s "#{Formula["mpfr"].lib}/libmpfr.dylib", "usr/lib/"
-    ln_s "#{Formula["gmp"].lib}/libgmp.dylib", "usr/lib/"
-    ln_s "#{Formula["libgit2"].lib}/libgit2.dylib", "usr/lib/"
+    ln_s "#{Formula["pcre2"].opt_lib}/libpcre2-8.dylib", "usr/lib/"
+    ln_s "#{Formula["mpfr"].opt_lib}/libmpfr.dylib", "usr/lib/"
+    ln_s "#{Formula["gmp"].opt_lib}/libgmp.dylib", "usr/lib/"
+    ln_s "#{Formula["libgit2"].opt_lib}/libgit2.dylib", "usr/lib/"
 
     system "make", "release", "debug", *build_opts
     system "make", "install", *build_opts
@@ -131,7 +127,7 @@ class Julia < Formula
     rpaths.each do |rpath|
       Dir["#{bin}/julia*"].each do |file|
         chmod 0755, file
-        quiet_system "install_name_tool", "-add_rpath", rpath, file
+        MachO::Tools.add_rpath(file, rpath)
         chmod 0555, file
       end
     end
@@ -144,7 +140,7 @@ class Julia < Formula
 
   test do
     # Run julia-provided test suite, copied over in install step
-    if !(share/"julia/test").exist?
+    if !(opt_pkgshare/"test").exist?
       err = "Could not find test files directory\n"
       if build.head?
         err << "Did you accidentally include --HEAD in the test invocation?"
@@ -153,7 +149,7 @@ class Julia < Formula
       end
       opoo err
     else
-      system "#{bin}/julia", "-e", "Base.runtests(\"core\")"
+      system "#{opt_bin}/julia", "-e", "Base.runtests(\"core\")"
     end
   end
 
@@ -161,10 +157,10 @@ class Julia < Formula
     head_flag = build.head? ? " --HEAD " : " "
     <<-EOS.undent
       Documentation and Examples have been installed into:
-      #{share}/julia
+      #{opt_pkgshare}
 
       Test suite has been installed into:
-      #{share}/julia/test
+      #{opt_pkgshare}/test
 
       To perform a quick sanity check, run the command:
       brew test#{head_flag}-v julia
