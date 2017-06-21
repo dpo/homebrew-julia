@@ -10,7 +10,8 @@ class GitNoDepthDownloadStrategy < GitDownloadStrategy
 end
 
 class Julia < Formula
-  homepage "http://julialang.org"
+  desc "julia: A fresh approach to technical computing"
+  homepage "https://julialang.org"
 
   stable do
     url "https://github.com/JuliaLang/julia.git",
@@ -21,6 +22,10 @@ class Julia < Formula
     url "https://github.com/JuliaLang/julia.git",
       :using => GitNoDepthDownloadStrategy, :shallow => false
   end
+
+  # Options that can be passed to the build process
+  deprecated_option "system-libm" => "with-system-libm"
+  option "with-system-libm", "Use system's libm instead of openlibm"
 
   depends_on "cmake" => :build
 
@@ -33,17 +38,14 @@ class Julia < Formula
   depends_on "libgit2"
   depends_on "mbedtls"
 
-  depends_on "homebrew/science/arpack"
+  depends_on "homebrew/science/arpack" => "with-openblas"
   depends_on "homebrew/science/openblas"
-  depends_on "homebrew/science/suite-sparse"
+  depends_on "homebrew/science/suite-sparse" => "with-openblas"
 
   depends_on :fortran
 
-  # Need this as Julia"s build process is quite messy with respect to env variables
-  env :std
-
-  # Options that can be passed to the build process
-  option "system-libm", "Use system's libm instead of openlibm"
+  # Need this as Julia's build process is quite messy with respect to env variables
+  # env :std
 
   def install
     ENV["PLATFORM"] = "darwin"
@@ -82,7 +84,7 @@ class Julia < Formula
       build_opts << "USE_SYSTEM_#{dep}=1"
     end
 
-    build_opts << "USE_SYSTEM_LIBM=1" if build.include? "system-libm"
+    build_opts << "USE_SYSTEM_LIBM=1" if build.with? "system-libm"
 
     # If we"re building a bottle, cut back on fancy CPU instructions
     build_opts << "MARCH=core2" if build.bottle?
@@ -138,7 +140,7 @@ class Julia < Formula
 
   test do
     # Run julia-provided test suite, copied over in install step
-    if !(share/"julia/test").exist?
+    if !(opt_pkgshare/"test").exist?
       err = "Could not find test files directory\n"
       if build.head?
         err << "Did you accidentally include --HEAD in the test invocation?"
@@ -147,7 +149,7 @@ class Julia < Formula
       end
       opoo err
     else
-      system "#{bin}/julia", "-e", "Base.runtests(\"core\")"
+      system "#{opt_bin}/julia", "-e", "Base.runtests(\"core\")"
     end
   end
 
@@ -155,10 +157,10 @@ class Julia < Formula
     head_flag = build.head? ? " --HEAD " : " "
     <<-EOS.undent
       Documentation and Examples have been installed into:
-      #{share}/julia
+      #{opt_pkgshare}
 
       Test suite has been installed into:
-      #{share}/julia/test
+      #{opt_pkgshare}/test
 
       To perform a quick sanity check, run the command:
       brew test#{head_flag}-v julia
