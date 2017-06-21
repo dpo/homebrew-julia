@@ -128,7 +128,7 @@ class Julia < Formula
       Dir["#{bin}/julia*"].each do |file|
         chmod 0755, file
         # quiet_system "install_name_tool", "-add_rpath", rpath, file
-        MachO::Tools.add_rpath(rpath, file)
+        MachO::Tools.add_rpath(file, rpath)
         chmod 0555, file
       end
     end
