@@ -89,7 +89,8 @@ class Julia < Formula
     # julia"s usr/lib directory and system default paths yet; the build process fixes that after the
     # install step, but the bootstrapping process requires the use of the fftw libraries before then
     mkdir_p "usr/lib"
-    # ln_s "#{Formula["openblas"].opt_lib}/libopenblas.dylib", "usr/lib/"
+    ln_s "/usr/lib/libblas.dylib", "usr/lib/"
+    ln_s "/usr/lib/liblapack.dylib", "usr/lib/"
     ln_s "#{Formula["arpack"].opt_lib}/libarpack.dylib", "usr/lib/"
     ln_s "#{Formula["pcre2"].opt_lib}/libpcre2-8.dylib", "usr/lib/"
     ln_s "#{Formula["mpfr"].opt_lib}/libmpfr.dylib", "usr/lib/"
