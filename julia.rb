@@ -15,7 +15,7 @@ class Julia < Formula
 
   stable do
     url "https://github.com/JuliaLang/julia.git",
-      :using => GitNoDepthDownloadStrategy, :shallow => false, :tag => "v0.5.2"
+      :using => GitNoDepthDownloadStrategy, :shallow => false, :tag => "v0.6.0"
   end
 
   head do
@@ -29,7 +29,7 @@ class Julia < Formula
 
   depends_on "cmake" => :build
 
-  depends_on "dpo/julia/llvm37-julia"
+  depends_on "dpo/julia/llvm39-julia"
 
   depends_on "pcre2"
   depends_on "gmp"
@@ -57,8 +57,8 @@ class Julia < Formula
     build_opts << "FC=#{ENV["FC"]}" if ENV.key? "FC"
 
     # Tell julia about our llvm-config, since it"s been named nonstandardly
-    build_opts << "LLVM_CONFIG=llvm-config-3.7"
-    build_opts << "LLVM_VER=3.7.1"
+    build_opts << "LLVM_CONFIG=#{Formula["llvm39-julia"].opt_bin}/llvm-config"
+    build_opts << "LLVM_VER=3.9.1"
     ENV.append "CPPFLAGS", " -DUSE_ORCJIT "
 
     # Tell julia where the default software base is, mostly for suitesparse
