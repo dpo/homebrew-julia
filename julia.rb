@@ -103,7 +103,7 @@ class Julia < Formula
 
   def post_install
     # We add in some custom RPATHs to julia
-    rpaths = []
+    rpaths = ["/usr/lib"]
 
     # Add in each key-only formula to the rpaths list
     ["arpack", "suite-sparse"].each do |formula|
