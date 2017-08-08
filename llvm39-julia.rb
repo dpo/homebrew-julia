@@ -19,40 +19,28 @@ end
 
 class Llvm39Julia < Formula
   desc "Next-gen compiler infrastructure"
-  homepage "http://llvm.org/"
+  homepage "https://llvm.org/"
+  revision 1
 
   stable do
-    url "http://llvm.org/releases/3.9.1/llvm-3.9.1.src.tar.xz"
+    url "https://llvm.org/releases/3.9.1/llvm-3.9.1.src.tar.xz"
     sha256 "1fd90354b9cf19232e8f168faf2220e79be555df3aa743242700879e8fd329ee"
 
     # Only required to build & run Compiler-RT tests on macOS, optional otherwise.
     # http://clang.llvm.org/get_started.html
     resource "libcxx" do
-      url "http://llvm.org/releases/3.9.1/libcxx-3.9.1.src.tar.xz"
+      url "https://llvm.org/releases/3.9.1/libcxx-3.9.1.src.tar.xz"
       sha256 "25e615e428f60e651ed09ffd79e563864e3f4bc69a9e93ee41505c419d1a7461"
     end
 
     resource "libunwind" do
-      url "http://llvm.org/releases/3.9.1/libunwind-3.9.1.src.tar.xz"
+      url "https://llvm.org/releases/3.9.1/libunwind-3.9.1.src.tar.xz"
       sha256 "0b0bc73264d7ab77d384f8a7498729e3c4da8ffee00e1c85ad02a2f85e91f0e6"
     end
   end
 
-  head do
-    url "http://llvm.org/git/llvm.git"
-
-    resource "libcxx" do
-      url "http://llvm.org/git/libcxx.git"
-    end
-
-    resource "libunwind" do
-      url "http://llvm.org/git/libunwind.git"
-    end
-  end
-
-  revision 1
   bottle do
-    root_url 'https://juliabottles.s3.amazonaws.com'
+    root_url "https://juliabottles.s3.amazonaws.com"
     cellar :any
     sha256 "3ac3290a24931a6ddff686d8d695e4436920d008b49677473e739bfd4c4badbf" => :mavericks
     sha256 "29a4b522e4ec3e4a30c3446ae801d288939cd37e3ab227c55c1e2bf13a8651c2" => :yosemite
@@ -60,42 +48,53 @@ class Llvm39Julia < Formula
     sha256 "1a63528a2050471cd7b4eddb2e69eb0b8cb8b30bfa74a45954a81485e8eec2c5" => :sierra
   end
 
+  head do
+    url "https://llvm.org/git/llvm.git"
+
+    resource "libcxx" do
+      url "https://llvm.org/git/libcxx.git"
+    end
+
+    resource "libunwind" do
+      url "https://llvm.org/git/libunwind.git"
+    end
+  end
+
   def patches
     patch_list = []
-    for patch_name in ["PR22923",
-                       "arm-fix-prel31",
-                       "D25865-cmakeshlib",
-                       "3.9.0_threads",
-                       "3.9.0_win64-reloc-dwarf",
-                       "3.9.0_D27296-libssp",
-                       "D27609-AArch64-UABS_G3",
-                       "D27629-AArch64-large_model",
-                       "D9168_argument_alignment",
-                       "D23597_sdag_names",
-                       "D24300_ptx_intrinsics",
-                       "D27389",
-                       "D27397",
-                       "D28009",
-                       "D28215_FreeBSD_shlib",
-                       "D28221-avx512",
-                       "PR276266",
-                       "PR278088",
-                       "PR277939",
-                       "PR278321",
-                       "PR278923",
-                       "D28759-loopclearance",
-                       "D28786-callclearance",
-                       "rL293230-icc17-cmake",
-                       "D32593",
-                       "D33179"]
+    ["PR22923",
+     "arm-fix-prel31",
+     "D25865-cmakeshlib",
+     "3.9.0_threads",
+     "3.9.0_win64-reloc-dwarf",
+     "3.9.0_D27296-libssp",
+     "D27609-AArch64-UABS_G3",
+     "D27629-AArch64-large_model",
+     "D9168_argument_alignment",
+     "D23597_sdag_names",
+     "D24300_ptx_intrinsics",
+     "D27389",
+     "D27397",
+     "D28009",
+     "D28215_FreeBSD_shlib",
+     "D28221-avx512",
+     "PR276266",
+     "PR278088",
+     "PR277939",
+     "PR278321",
+     "PR278923",
+     "D28759-loopclearance",
+     "D28786-callclearance",
+     "rL293230-icc17-cmake",
+     "D32593",
+     "D33179"].each do |patch_name|
       patch_list << "https://raw.githubusercontent.com/JuliaLang/julia/9e3318c9840e7a9e387582ba861408cefe5a4f75/deps/patches/llvm-#{patch_name}.patch"
     end
-    return patch_list
+    patch_list
   end
 
   keg_only :provided_by_osx
 
-  option :universal
   option "without-compiler-rt", "Do not build Clang runtime support libraries for code sanitizers, builtins, and profiling"
   option "without-libcxx", "Do not build libc++ standard library"
   option "with-toolchain", "Build with Toolchain to facilitate overriding system compiler"
@@ -105,7 +104,7 @@ class Llvm39Julia < Formula
   option "without-libffi", "Do not use libffi to call external functions"
   option "with-all-targets", "Build all targets. Default targets: AMDGPU, ARM, NVPTX, and X86"
 
-  depends_on "libffi" => :recommended # http://llvm.org/docs/GettingStarted.html#requirement
+  depends_on "libffi" => :recommended # https://llvm.org/docs/GettingStarted.html#requirement
   depends_on "graphviz" => :optional # for the 'dot' tool (lldb)
 
   depends_on "ocaml" => :optional
@@ -194,11 +193,6 @@ class Llvm39Julia < Formula
       args << "-DLLVM_ENABLE_FFI=ON"
       args << "-DFFI_INCLUDE_DIR=#{Formula["libffi"].opt_lib}/libffi-#{Formula["libffi"].version}/include"
       args << "-DFFI_LIBRARY_DIR=#{Formula["libffi"].opt_lib}"
-    end
-
-    if build.universal?
-      ENV.permit_arch_flags
-      args << "-DCMAKE_OSX_ARCHITECTURES=#{Hardware::CPU.universal_archs.as_cmake_arch_flags}"
     end
 
     mktemp do
