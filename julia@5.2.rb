@@ -38,9 +38,9 @@ class JuliaAT52 < Formula
   depends_on "libgit2"
   depends_on "mbedtls"
 
-  depends_on "homebrew/science/arpack"
-  depends_on "homebrew/science/openblas"
-  depends_on "homebrew/science/suite-sparse"
+  depends_on "arpack"
+  depends_on "openblas"
+  depends_on "suite-sparse"
 
   depends_on :fortran
 
