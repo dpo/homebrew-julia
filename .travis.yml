@@ -13,7 +13,6 @@ branches:
 install:
   - unset DYLD_LIBRARY_PATH
   - export HOMEBREW_DEVELOPER=1
-  - brew tap homebrew/science
   - mkdir -p $(brew --repo)/Library/Taps/dpo
   - ln -s "$TRAVIS_BUILD_DIR" $(brew --repo)/Library/Taps/dpo/homebrew-julia
   - export TRAVIS_BUILD_DIR="$(brew --repo)/Library/Taps/dpo/homebrew-julia"
