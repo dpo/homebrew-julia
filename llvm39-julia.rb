@@ -10,7 +10,7 @@ class CodesignRequirement < Requirement
   end
 
   def message
-    <<-EOS.undent
+    <<~EOS
       lldb_codesign identity must be available to build with LLDB.
       See: https://llvm.org/svn/llvm-project/lldb/trunk/docs/code-signing.txt
     EOS
@@ -37,15 +37,6 @@ class Llvm39Julia < Formula
       url "https://llvm.org/releases/3.9.1/libunwind-3.9.1.src.tar.xz"
       sha256 "0b0bc73264d7ab77d384f8a7498729e3c4da8ffee00e1c85ad02a2f85e91f0e6"
     end
-  end
-
-  bottle do
-    root_url "https://juliabottles.s3.amazonaws.com"
-    cellar :any
-    sha256 "3ac3290a24931a6ddff686d8d695e4436920d008b49677473e739bfd4c4badbf" => :mavericks
-    sha256 "29a4b522e4ec3e4a30c3446ae801d288939cd37e3ab227c55c1e2bf13a8651c2" => :yosemite
-    sha256 "95ff13a6a74d39aae4392f4e6e527c70d8dad8422177538e5365a98fae1c0278" => :el_capitan
-    sha256 "1a63528a2050471cd7b4eddb2e69eb0b8cb8b30bfa74a45954a81485e8eec2c5" => :sierra
   end
 
   head do
@@ -87,23 +78,26 @@ class Llvm39Julia < Formula
      "D28786-callclearance",
      "rL293230-icc17-cmake",
      "D32593",
-     "D33179"].each do |patch_name|
-      patch_list << "https://raw.githubusercontent.com/JuliaLang/julia/9e3318c9840e7a9e387582ba861408cefe5a4f75/deps/patches/llvm-#{patch_name}.patch"
+     "D33179",
+     "PR29010-i386-xmm",
+     "3.9.0-D37576-NVPTX-sm_70",
+     "D31524-sovers_4.0"].each do |patch_name|
+      patch_list << "https://raw.githubusercontent.com/JuliaLang/julia/v0.6.3/deps/patches/llvm-#{patch_name}.patch"
     end
     patch_list
   end
 
-  keg_only :provided_by_osx
+  keg_only :provided_by_macos
 
   option "without-compiler-rt", "Do not build Clang runtime support libraries for code sanitizers, builtins, and profiling"
   option "without-libcxx", "Do not build libc++ standard library"
   option "with-toolchain", "Build with Toolchain to facilitate overriding system compiler"
   option "with-lldb", "Build LLDB debugger"
-  option "with-python", "Build bindings against custom Python"
   option "with-shared-libs", "Build shared instead of static libraries"
   option "without-libffi", "Do not use libffi to call external functions"
   option "with-all-targets", "Build all targets. Default targets: AMDGPU, ARM, NVPTX, and X86"
 
+  depends_on "python@2" unless OS.mac?
   depends_on "libffi" => :recommended # https://llvm.org/docs/GettingStarted.html#requirement
   depends_on "graphviz" => :optional # for the 'dot' tool (lldb)
 
@@ -113,11 +107,6 @@ class Llvm39Julia < Formula
     depends_on "pkg-config" => :build
   end
 
-  if MacOS.version <= :snow_leopard
-    depends_on :python
-  else
-    depends_on :python => :optional
-  end
   depends_on "cmake" => :build
 
   if build.with? "lldb"
@@ -144,12 +133,10 @@ class Llvm39Julia < Formula
     (buildpath/"projects/libunwind").install resource("libunwind")
 
     if build.with? "lldb"
-      if build.with? "python"
-        pyhome = `python-config --prefix`.chomp
-        ENV["PYTHONHOME"] = pyhome
-        pylib = "#{pyhome}/lib/libpython2.7.dylib"
-        pyinclude = "#{pyhome}/include/python2.7"
-      end
+      pyhome = `python-config --prefix`.chomp
+      ENV["PYTHONHOME"] = pyhome
+      pylib = "#{pyhome}/lib/libpython2.7.dylib"
+      pyinclude = "#{pyhome}/include/python2.7"
       (buildpath/"tools/lldb").install resource("lldb")
 
       # Building lldb requires a code signing certificate.
@@ -183,7 +170,7 @@ class Llvm39Julia < Formula
 
     args << "-DLLVM_ENABLE_LIBCXX=ON" if build_libcxx?
 
-    if build.with?("lldb") && build.with?("python")
+    if build.with?("lldb")
       args << "-DLLDB_RELOCATABLE_PYTHON=ON"
       args << "-DPYTHON_LIBRARY=#{pylib}"
       args << "-DPYTHON_INCLUDE_DIR=#{pyinclude}"
@@ -217,13 +204,13 @@ class Llvm39Julia < Formula
   end
 
   def caveats
-    s = <<-EOS.undent
+    s = <<~EOS
       LLVM executables are installed in #{opt_bin}.
       Extra tools are installed in #{opt_pkgshare}.
     EOS
 
     if build_libcxx?
-      s += <<-EOS.undent
+      s += <<~EOS
         To use the bundled libc++ please add the following LDFLAGS:
           LDFLAGS="-L#{opt_lib} -Wl,-rpath,#{opt_lib}"
       EOS
@@ -234,103 +221,5 @@ class Llvm39Julia < Formula
 
   test do
     assert_equal prefix.to_s, shell_output("#{bin}/llvm-config --prefix").chomp
-
-    (testpath/"omptest.c").write <<-EOS.undent
-      #include <stdlib.h>
-      #include <stdio.h>
-      #include <omp.h>
-
-      int main() {
-          #pragma omp parallel num_threads(4)
-          {
-            printf("Hello from thread %d, nthreads %d\\n", omp_get_thread_num(), omp_get_num_threads());
-          }
-          return EXIT_SUCCESS;
-      }
-    EOS
-
-    system "#{bin}/clang", "-L#{lib}", "-fopenmp", "-nobuiltininc",
-                           "-I#{lib}/clang/#{version}/include",
-                           "omptest.c", "-o", "omptest"
-    testresult = shell_output("./omptest")
-
-    sorted_testresult = testresult.split("\n").sort.join("\n")
-    expected_result = <<-EOS.undent
-      Hello from thread 0, nthreads 4
-      Hello from thread 1, nthreads 4
-      Hello from thread 2, nthreads 4
-      Hello from thread 3, nthreads 4
-    EOS
-    assert_equal expected_result.strip, sorted_testresult.strip
-
-    (testpath/"test.c").write <<-EOS.undent
-      #include <stdio.h>
-
-      int main()
-      {
-        printf("Hello World!\\n");
-        return 0;
-      }
-    EOS
-
-    (testpath/"test.cpp").write <<-EOS.undent
-      #include <iostream>
-
-      int main()
-      {
-        std::cout << "Hello World!" << std::endl;
-        return 0;
-      }
-    EOS
-
-    # Testing Command Line Tools
-    if MacOS::CLT.installed?
-      libclangclt = Dir["/Library/Developer/CommandLineTools/usr/lib/clang/#{MacOS::CLT.version.to_i}*"].last { |f| File.directory? f }
-
-      system "#{bin}/clang++", "-v", "-nostdinc",
-              "-I/Library/Developer/CommandLineTools/usr/include/c++/v1",
-              "-I#{libclangclt}/include",
-              "-I/usr/include", # need it because /Library/.../usr/include/c++/v1/iosfwd refers to <wchar.h>, which CLT installs to /usr/include
-              "test.cpp", "-o", "testCLT++"
-      assert_match "/usr/lib/libc++.1.dylib", shell_output("otool -L ./testCLT++").chomp
-      assert_equal "Hello World!", shell_output("./testCLT++").chomp
-
-      system "#{bin}/clang", "-v", "-nostdinc",
-              "-I/usr/include", # this is where CLT installs stdio.h
-              "test.c", "-o", "testCLT"
-      assert_equal "Hello World!", shell_output("./testCLT").chomp
-    end
-
-    # Testing Xcode
-    if MacOS::Xcode.installed?
-      libclangxc = Dir["#{MacOS::Xcode.toolchain_path}/usr/lib/clang/#{DevelopmentTools.clang_version}*"].last { |f| File.directory? f }
-
-      system "#{bin}/clang++", "-v", "-nostdinc",
-              "-I#{MacOS::Xcode.toolchain_path}/usr/include/c++/v1",
-              "-I#{libclangxc}/include",
-              "-I#{MacOS.sdk_path}/usr/include",
-              "test.cpp", "-o", "testXC++"
-      assert_match "/usr/lib/libc++.1.dylib", shell_output("otool -L ./testXC++").chomp
-      assert_equal "Hello World!", shell_output("./testXC++").chomp
-
-      system "#{bin}/clang", "-v", "-nostdinc",
-              "-I#{MacOS.sdk_path}/usr/include",
-              "test.c", "-o", "testXC"
-      assert_equal "Hello World!", shell_output("./testXC").chomp
-    end
-
-    # link against installed libc++
-    # related to https://github.com/Homebrew/legacy-homebrew/issues/47149
-    if build_libcxx?
-      system "#{bin}/clang++", "-v", "-nostdinc",
-              "-std=c++11", "-stdlib=libc++",
-              "-I#{MacOS::Xcode.toolchain_path}/usr/include/c++/v1",
-              "-I#{libclangxc}/include",
-              "-I#{MacOS.sdk_path}/usr/include",
-              "-L#{lib}",
-              "-Wl,-rpath,#{lib}", "test.cpp", "-o", "test"
-      assert_match "#{opt_lib}/libc++.1.dylib", shell_output("otool -L ./test").chomp
-      assert_equal "Hello World!", shell_output("./test").chomp
-    end
   end
 end

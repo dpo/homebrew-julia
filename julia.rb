@@ -15,7 +15,7 @@ class Julia < Formula
 
   stable do
     url "https://github.com/JuliaLang/julia.git",
-      :using => GitNoDepthDownloadStrategy, :shallow => false, :tag => "v0.6.0"
+      :using => GitNoDepthDownloadStrategy, :shallow => false, :tag => "v0.6.3"
   end
 
   head do
@@ -23,8 +23,6 @@ class Julia < Formula
       :using => GitNoDepthDownloadStrategy, :shallow => false
   end
 
-  # Options that can be passed to the build process
-  deprecated_option "system-libm" => "with-system-libm"
   option "with-system-libm", "Use system's libm instead of openlibm"
 
   depends_on "cmake" => :build
@@ -37,47 +35,37 @@ class Julia < Formula
   depends_on "mpfr"
   depends_on "libgit2"
   depends_on "mbedtls"
+  depends_on "glpk"
 
-  depends_on "arpack"
   depends_on "openblas"
-  depends_on "suite-sparse"
-
-  depends_on :fortran
+  depends_on "dpo/openblas/arpack"
+  depends_on "dpo/openblas/suite-sparse"
 
   def install
     ENV["PLATFORM"] = "darwin"
-    ENV["PYTHONPATH"] = ""
 
-    # Build up list of build options
-    build_opts = ["prefix=#{prefix}"]
-    build_opts << "USE_BLAS64=0"
-    build_opts << "TAGGED_RELEASE_BANNER=\"homebrew-julia release\""
-
-    # Tell julia about our gfortran
-    build_opts << "FC=#{ENV["FC"]}" if ENV.key? "FC"
+    build_opts = ["prefix=#{prefix}",
+                  "TAGGED_RELEASE_BANNER=\"homebrew-julia release\"",
+                  "USE_SYSTEM_LIBUNWIND=1",
+                  "LIBBLAS=-lopenblas",
+                  "LIBBLASNAME=libopenblas",
+                  "LIBLAPACK=-lopenblas",
+                  "LIBLAPACKNAME=libopenblas"]
 
     # Tell julia about our llvm-config, since it"s been named nonstandardly
     build_opts << "LLVM_CONFIG=#{Formula["llvm39-julia"].opt_bin}/llvm-config"
     build_opts << "LLVM_VER=3.9.1"
     ENV.append "CPPFLAGS", " -DUSE_ORCJIT "
 
-    # Tell julia where the default software base is, mostly for suitesparse
-    build_opts << "LOCALBASE=#{prefix}"
-
     # Make sure we have space to muck around with RPATHS
     ENV.append "LDFLAGS", " -headerpad_max_install_names"
 
     # Make sure Julia uses clang if the environment supports it
     build_opts << "USECLANG=1" if ENV.compiler == :clang
-    build_opts << "VERBOSE=1" if ARGV.verbose?
-
-    build_opts << "LIBBLAS=-lopenblas"
-    build_opts << "LIBBLASNAME=libopenblas"
-    build_opts << "LIBLAPACK=-lopenblas"
-    build_opts << "LIBLAPACKNAME=libopenblas"
+    build_opts << "VERBOSE=1"  if ARGV.verbose?
 
     # Kudos to @ijt for these lines of code
-    %w[FFTW GLPK GMP LLVM PCRE BLAS LAPACK SUITESPARSE ARPACK MPFR LIBGIT2].each do |dep|
+    %w[FFTW GLPK GMP LLVM PCRE BLAS LAPACK SUITESPARSE ARPACK MPFR LIBGIT2 MBEDTLS].each do |dep|
       build_opts << "USE_SYSTEM_#{dep}=1"
     end
 
@@ -133,7 +121,7 @@ class Julia < Formula
 
   def caveats
     head_flag = build.head? ? " --HEAD " : " "
-    s = <<-EOS.undent
+    s = <<~EOS
       Documentation and Examples have been installed into:
       #{opt_pkgshare}
 
@@ -146,17 +134,6 @@ class Julia < Formula
       To crunch through the full test suite, run the command:
       #{bin}/julia -e "Base.runtests()"
     EOS
-    arpack_noopenblas = Tab.for_name("arpack").without? "openblas"
-    suitesp_noopenblas = Tab.for_name("suite-sparse").without? "openblas"
-    s += "\nNote:\n" if arpack_noopenblas || suitesp_noopenblas
-    s += "Arpack uses different BLAS/LAPACK than Julia.\n" if arpack_noopenblas
-    s += "SuiteSparse uses different BLAS/LAPACK than Julia.\n" if suitesp_noopenblas
-    if arpack_noopenblas || suitesp_noopenblas
-      s += <<-EOS.undent
-        Normally, that should not cause problems. However, you may recompile
-        arpack and/or suite-sparse from source --with-openblas if you desire.
-      EOS
-    end
     s
   end
 
